@@ -1,122 +1,159 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 import './App.css';
 
 function App() {
   const [story, setStory] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [imagePreview, setImagePreview] = useState(null);
+
+  const handleStoryChange = (e) => {
+    setStory(e.target.value);
+  };
+
+  const handleImageChange = (e) => {
+    if (e.target.files[0]) {
+      const file = e.target.files[0];
+      setImage(file);
+      
+      // Create image preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate that at least one field has content
+    if (!story && !image) {
+      setError('Please share your story or upload an image (or both)!');
+      return;
+    }
+    
     setLoading(true);
+    setError('');
+    
+    const formData = new FormData();
+    if (story) formData.append('story', story);
+    if (image) formData.append('image', image);
     
     try {
-      const response = await fetch('http://localhost:5000/api/stories', {
-        method: 'POST',
+      // Use absolute URL to backend - adjust this URL based on your deployment
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      await axios.post(`${apiUrl}/api/stories`, formData, {
         headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ story }),
+          'Content-Type': 'multipart/form-data'
+        }
       });
       
-      if (response.ok) {
-        setSubmitted(true);
-        setStory('');
-      } else {
-        alert('Something went wrong. Please try again!');
-      }
-    } catch (error) {
-      console.error('Error submitting story:', error);
-      alert('Something went wrong. Please try again!');
+      setSubmitted(true);
+      setStory('');
+      setImage(null);
+      setImagePreview(null);
+    } catch (err) {
+      console.error('Error details:', err);
+      setError('Something went wrong! Please try again. ' + 
+               (err.response?.data?.error || err.message || ''));
     } finally {
       setLoading(false);
     }
   };
+  
+  const handleReset = () => {
+    setSubmitted(false);
+    setError('');
+  };
+
+  const removeImage = () => {
+    setImage(null);
+    setImagePreview(null);
+  };
 
   return (
     <div className="app-container">
-      <div className="form-container">
-        <div className="header">
-          <div className="title-container">
-            <span className="title-sparkle sparkle1">✨</span>
-            <span className="title-sparkle sparkle2">✨</span>
-            <span className="title-sparkle sparkle3">✨</span>
-            <span className="title-sparkle sparkle4">✨</span>
-            <h1>She Speaks, We Listen</h1>
-          </div>
-          <p className="subtitle">Share your magical story and inspire the world!</p>
-        </div>
-        
-        {!submitted ? (
+      <div className="floating-clouds">
+        <div className="cloud cloud1"></div>
+        <div className="cloud cloud2"></div>
+        <div className="cloud cloud3"></div>
+      </div>
+      
+      <div className="stars"></div>
+      
+      <header>
+        <h1>✨ Share Your Story ✨</h1>
+        <p>In celebration of Women's Day</p>
+      </header>
+      
+      {!submitted ? (
+        <div className="form-container">
           <form onSubmit={handleSubmit} className="story-form">
-            <div className="form-group">
-              <label htmlFor="story">Your Amazing Story</label>
+            <div className="textarea-container">
+              <label htmlFor="story">Your Story</label>
               <textarea
                 id="story"
                 value={story}
-                onChange={(e) => setStory(e.target.value)}
-                placeholder="Once upon a time in a land of dreams..."
-                required
-                rows={10}
+                onChange={handleStoryChange}
+                placeholder="Share your journey, dreams, or experiences..."
+                rows="6"
               />
             </div>
             
+            <div className="file-upload">
+              <label htmlFor="image" className="custom-file-upload">
+                <span className="upload-icon">📷</span>
+                <span>Add a photo</span>
+              </label>
+              <input
+                type="file"
+                id="image"
+                onChange={handleImageChange}
+                accept="image/*"
+              />
+              
+              {imagePreview && (
+                <div className="image-preview-container">
+                  <img src={imagePreview} alt="Preview" className="image-preview" />
+                  <button type="button" onClick={removeImage} className="remove-image-btn">
+                    ✕
+                  </button>
+                </div>
+              )}
+              
+              {image && !imagePreview && <p className="file-name">{image.name}</p>}
+            </div>
+            
+            {error && <p className="error">{error}</p>}
+            
             <button 
-              className="submit-button" 
               type="submit" 
-              disabled={loading || !story.trim()}
+              className="submit-button" 
+              disabled={loading}
             >
-              {loading ? 'Sending your story...' : 'Share My Story! 💫'}
+              {loading ? 'Sending...' : 'Share My Story ✨'}
             </button>
           </form>
-        ) : (
-          <div className="success-message">
-            <h2>✨ Thank you for sharing your story! ✨</h2>
-            <p>Your voice matters and inspires others. Your story has been added to our magical collection.</p>
-            <button className="new-story-button" onClick={() => setSubmitted(false)}>
-              Share Another Story 💫
-            </button>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="success-message">
+          <div className="success-icon">🎉</div>
+          <h2>Thank You!</h2>
+          <p>Your story has been added to our Women's Day celebration!</p>
+          <button onClick={handleReset} className="new-story-button">
+            Share Another Story
+          </button>
+        </div>
+      )}
       
-      <div className="decorations">
-        {/* Stars */}
-        <div className="star star1">⭐</div>
-        <div className="star star2">✨</div>
-        <div className="star star3">⭐</div>
-        <div className="star star4">✨</div>
-        <div className="star star5">⭐</div>
-        <div className="star star6">✨</div>
-        <div className="star star7">⭐</div>
-        
-        {/* Hearts */}
-        <div className="heart heart1">💖</div>
-        <div className="heart heart2">💕</div>
-        <div className="heart heart3">💗</div>
-        <div className="heart heart4">💓</div>
-        
-        {/* Clouds */}
-        <div className="cloud cloud1">☁️</div>
-        <div className="cloud cloud2">☁️</div>
-        
-        {/* Butterflies */}
-        <div className="butterfly butterfly1">🦋</div>
-        <div className="butterfly butterfly2">🦋</div>
-        
-        {/* Rainbow */}
-        <div className="rainbow rainbow1">🌈</div>
-        
-        {/* Sparkles */}
-        <div className="sparkle sparkle1">✨</div>
-        <div className="sparkle sparkle2">✨</div>
-        <div className="sparkle sparkle3">✨</div>
-        <div className="sparkle sparkle4">✨</div>
-        <div className="sparkle sparkle5">✨</div>
-        <div className="sparkle sparkle6">✨</div>
-        <div className="sparkle sparkle7">✨</div>
-        <div className="sparkle sparkle8">✨</div>
-      </div>
+      <footer>
+        <p>Your stories inspire us all! 💖</p>
+      </footer>
     </div>
   );
 }
