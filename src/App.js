@@ -46,7 +46,7 @@ function App() {
     
     try {
       // Use absolute URL to backend - adjust this URL based on your deployment
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://women-sday-form-backend-4otecg7hj-nss-projects-62a124fd.vercel.app/';
       await axios.post(`${apiUrl}/api/stories`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
